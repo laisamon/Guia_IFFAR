@@ -15,33 +15,34 @@ export default function InscricaoEvento() {
   const { evento_id } = route.params;
 
   const inscreverUsuario = async () => {
-      console.log('Função inscreverUsuario chamada');
+    if (!perfil || !perfil.id) {
+      Alert.alert('Erro', 'Usuário não está logado corretamente.');
+      return;
+    }
 
-
+    console.log('Função inscreverUsuario chamada');
     setCarregando(true);
-
 
     const { error } = await supabase.from('eventos_inscricoes').insert([
       {
         usuario_id: perfil.id,
         evento_id: evento_id,
-        status: 'confirmada'
-      }
+        status: 'confirmada',
+      },
     ]);
 
     setCarregando(false);
 
     if (error) {
-        Alert.alert('Erro', `Erro ao se inscrever no evento: ${error.message}`);
+      Alert.alert('Erro', `Erro ao se inscrever no evento: ${error.message}`);
       console.log('Perfil:', perfil.id);
-        console.log('Evento ID:', evento_id);
+      console.log('Evento ID:', evento_id);
     } else {
-        Alert.alert('Sucesso', 'Inscrição realizada com sucesso!');
+      Alert.alert('Sucesso', 'Inscrição realizada com sucesso!');
       navigation.navigate('Eventos');
-      console.log('Perfil:', perfil.id);
-        console.log('Evento ID:', evento_id);
     }
   };
+
 
   return (
     <View style={styles.container}>

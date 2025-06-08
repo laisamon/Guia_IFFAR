@@ -5,7 +5,18 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { useUsuario } from '../contexto/UsuarioContexto';
 
-export default function EventoCard({ id, titulo, data, local, inscricao, vagas_disponiveis, onPress }) {
+export default function EventoCard({
+  id,
+  titulo,
+  data,
+  local,
+  inscricao,
+  vagas_disponiveis,
+  total_comentarios = 0,
+  total_curtidas = 0,
+  total_fotos = 0,
+  onPress
+}) {
     const theme = useTheme();
     const { eventosInscritos } = useUsuario();
 
@@ -36,19 +47,31 @@ export default function EventoCard({ id, titulo, data, local, inscricao, vagas_d
                         {textoBadge}
                     </Badge>
                 </View>
+
+                {/* Data */}
                 <View style={styles.info}>
                     <MaterialCommunityIcons name="calendar" size={16} color="#000" />
                     <Text variant="bodyMedium" style={styles.infoText}>Data: {format(data, 'dd/MM/yyyy')}</Text>
                 </View>
+
+                {/* Local */}
                 <View style={styles.info}>
                     <MaterialCommunityIcons name="map-marker" size={16} color="#000" />
                     <Text variant="bodyMedium" style={styles.infoText}>Local: {local}</Text>
                 </View>
 
                 <View style={styles.iconesContainer}>
-                    <MaterialCommunityIcons name="comment-processing-outline" size={16} color='#000'style={styles.icone} />
-                    <MaterialCommunityIcons name="cards-heart-outline" size={16} color='#000' style={styles.icone} />
-                    <MaterialCommunityIcons name="image" size={16} color='#000' style={styles.icone} />
+                    {/* Comentários */}  
+                    <MaterialCommunityIcons name="comment-processing-outline" size={16} color='#000' />
+                    <Text>{total_comentarios}</Text>
+
+                    {/* Curtidas */}  
+                    <MaterialCommunityIcons name="cards-heart-outline" size={16} color='#000' />
+                    <Text>{total_curtidas}</Text>
+
+                    {/* fotos */}  
+                    <MaterialCommunityIcons name="image" size={16} color='#000' />
+                    <Text>{total_fotos}</Text>
                 </View>
             </Card.Content>
         </Card>

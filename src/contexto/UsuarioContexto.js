@@ -15,24 +15,33 @@ export const UsuarioProvider = ({ children }) => {
         setPerfil(null);
     };
 
-    const atualizarEventosInscritos = async (usuarioId) => {
-        const { data, error } = await supabase
-            .from('eventos_inscricoes')
-            .select('evento_id, status')
-            .eq('usuario_id', usuarioId);
+const atualizarEventosInscritos = async (usuarioId = perfil?.id) => {
+  if (!usuarioId) {
+    console.warn("Usuário ID não disponível para buscar eventos inscritos.");
+    return;
+  }
 
-        if (!error) {
-            setEventosInscritos(data);
-        } else {
-            console.error('Erro ao carregar eventos inscritos:', error.message);
-        }
-    };
+  const { data, error } = await supabase
+    .from('eventos_inscricoes')
+    .select('evento_id, status')
+    .eq('usuario_id', usuarioId);
 
-    useEffect(() => {
-        if (perfil) {
-            atualizarEventosInscritos(perfil.id);
-        }
-    }, [perfil]); // Atualiza inscrições quando o perfil muda
+  if (!error) {
+    setEventosInscritos(data);
+  } else {
+    console.error('Erro ao carregar eventos inscritos:', error.message);
+  }
+};
+
+
+useEffect(() => {
+  if (perfil?.id) {
+    atualizarEventosInscritos(perfil.id);
+  }
+}, [perfil]);
+
+
+// Atualiza inscrições quando o perfil muda
 
     return (
         <UsuarioContext.Provider 

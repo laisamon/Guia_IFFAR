@@ -14,22 +14,38 @@ export default function Eventos({ navigation }) {
 
   const isFocused = useIsFocused(); 
 
-  useEffect(() => {
-    async function buscarEventos() {
-      setCarregando(true); 
-      const { data, error } = await supabase.from('eventos').select('*');
+useEffect(() => {
+  async function buscarEventos() {
+    setCarregando(true); 
 
-      if (error) {
-        console.error('Erro ao buscar eventos:', error);
-      } else {
-        setEventos(data);
-      }
+    const [{ data: eventos, error: eventosErro }, { data: contadores, error: contErro }] = await Promise.all([
+      supabase.from('eventos').select('*'),
+      supabase.from('eventos_contadores').select('*')
+    ]);
 
-      setCarregando(false);
+    if (eventosErro || contErro) {
+      console.error('Erro:', eventosErro || contErro);
+    } else {
+      // Junta os dados dos contadores no evento correspondente
+      const eventosComContadores = eventos.map(evento => {
+        const contador = contadores.find(c => c.evento_id === evento.id) || {};
+        return {
+          ...evento,
+          total_comentarios: contador.total_comentarios || 0,
+          total_curtidas: contador.total_curtidas || 0,
+          total_fotos: contador.total_fotos || 0,
+        };
+      });
+
+      setEventos(eventosComContadores);
     }
 
-    buscarEventos();
-  }, [isFocused]); 
+    setCarregando(false);
+  }
+
+  buscarEventos();
+}, [isFocused]);
+
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
