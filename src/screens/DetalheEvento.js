@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View, Alert } from 'react-native';
-import { Text, Card, Badge, Divider, Button, useTheme, TextInput, IconButton } from 'react-native-paper';
+import { Text, Card, Badge, Divider, Button, useTheme, TextInput } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { format } from 'date-fns';
 import { useUsuario } from '../contexto/UsuarioContexto';
@@ -20,18 +20,17 @@ export default function DetalheEvento({ route }) {
   const [curtido, setCurtido] = useState(false);
   const [totalCurtidas, setTotalCurtidas] = useState(0);
   const [mostrarImagens, setMostrarImagens] = useState(false);
-  const [mostrarComentarios, setMostrarComentarios] = useState(false); // Estado para controlar a visibilidade dos comentários
-  
+  const [mostrarComentarios, setMostrarComentarios] = useState(false);
+
   const inscrito = eventosInscritos.find(e => e.evento_id === id);
 
-useEffect(() => {
-  if (perfil?.id) {
-    buscarCurtidas();
-    buscarComentarios();
-    buscarImagens();
-  }
-}, [id, perfil?.id]);
-
+  useEffect(() => {
+    if (perfil?.id) {
+      buscarCurtidas();
+      buscarComentarios();
+      buscarImagens();
+    }
+  }, [id, perfil?.id]);
 
   const buscarCurtidas = async () => {
     const { count } = await supabase
@@ -40,7 +39,7 @@ useEffect(() => {
       .eq('evento_id', id);
 
     setTotalCurtidas(count);
-    
+
     const { data: minhaCurtida } = await supabase
       .from('curtidas_evento')
       .select('*')
@@ -111,6 +110,43 @@ useEffect(() => {
     }
   };
 
+  console.log(perfil.email)
+
+// Função corrigida para enviar e-mail via fetch diretamente
+async function enviarEmailConfirmacao(email, tituloEvento, dataEvento) {
+  console.log('Usu:', perfil)
+  if (!email) {
+    console.error('Email do usuário não definido');
+    return;
+  }
+
+  try {
+    const response = await fetch('https://dgbojihnuqfzjdhxiteu.supabase.co/functions/v1/email-inscricao', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to: perfil.email,
+        subject: `Confirmação de inscrição no evento: ${tituloEvento}`,
+        html: `<p>Você está inscrito no evento <strong>${tituloEvento}</strong> que acontecerá em ${new Date(dataEvento).toLocaleDateString()}.</p>`,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText);
+    }
+
+    const data = await response.json();
+    console.log('Email enviado:', data);
+  } catch (error) {
+    console.error('Erro ao enviar email:', error);
+  }
+}
+
+
+
+
+
   // Estilo do badge de inscrição
   let corBadge = theme.colors.outline;
   let textoBadge = 'Encerradas';
@@ -128,7 +164,7 @@ useEffect(() => {
   };
 
   const toggleComentarios = () => {
-    setMostrarComentarios(!mostrarComentarios); // Alternar visibilidade dos comentários
+    setMostrarComentarios(!mostrarComentarios);
   };
 
   return (
@@ -203,7 +239,7 @@ useEffect(() => {
             </View>
           )}
 
-          {/* Renderiza comentários apenas se mostrarComentarios for true */}
+          {/* Comentários */}
           {mostrarComentarios && (
             <View style={{ marginTop: 16 }}>
               <View style={styles.comentarioHeader}>
@@ -249,23 +285,27 @@ useEffect(() => {
       {inscricao && !inscrito && (
         <Button
           mode="contained"
-          onPress={async () => {
-            const { error } = await supabase
-              .from('eventos_inscricoes') // ou 'inscricoes'
-              .insert({
-                evento_id: id,
-                usuario_id: perfil.id,
-                status: 'confirmada', // apenas se a tabela exige
-              });
+         onPress={async () => {
+  const { error } = await supabase
+    .from('eventos_inscricoes')
+    .insert({
+      evento_id: id,
+      usuario_id: perfil.id,
+      status: 'confirmada',
+    });
 
-            if (!error) {
-              Alert.alert('Sucesso!', 'Você foi inscrito no evento.');
-              atualizarEventosInscritos(); // se usa contexto
-            } else {
-              Alert.alert('Erro', 'Não foi possível inscrever.');
-              console.error('Erro ao inscrever:', error.message);
-            }
-          }}
+  if (!error) {
+    Alert.alert('Sucesso!', 'Você foi inscrito no evento.');
+    atualizarEventosInscritos();
+
+    // Enviar email
+    enviarEmailConfirmacao(perfil.email, titulo, data);
+  } else {
+    Alert.alert('Erro', 'Não foi possível inscrever.');
+    console.error('Erro ao inscrever:', error.message);
+  }
+}}
+
           style={styles.botao}
         >
           Inscrever-se
@@ -282,8 +322,10 @@ useEffect(() => {
 
             if (!error) {
               atualizarEventosInscritos();
+              Alert.alert('Inscrição cancelada', 'Sua inscrição foi cancelada.');
             } else {
               console.error('Erro ao cancelar inscrição:', error.message);
+              Alert.alert('Erro', 'Não foi possível cancelar a inscrição.');
             }
           }}
           style={styles.botao}
@@ -323,24 +365,33 @@ const styles = StyleSheet.create({
     color: '#fff',
     paddingHorizontal: 10,
     fontSize: 12,
+    height: 20,
+    textAlignVertical: 'center',
+    borderRadius: 20,
   },
-  divisor: { marginVertical: 12 },
-  subtitulo: { marginBottom: 4 },
-  descricao: { marginTop: 8, lineHeight: 20 },
-  botao: { marginTop: 10 },
+  divisor: {
+    marginVertical: 8,
+  },
+  subtitulo: {
+    marginBottom: 6,
+    fontWeight: 'bold',
+  },
+  descricao: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
   iconesContainer: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  justifyContent: 'flex-start',
-  marginTop: 8,
-  gap: 16, // se estiver com React Native >0.71
-  // ou use columnGap: 16 caso necessário
-},
-
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  botao: {
+    marginTop: 12,
+  },
   comentarioHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginBottom: 8,
+    marginBottom: 6,
   },
 });
